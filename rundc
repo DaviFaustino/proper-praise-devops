@@ -1,0 +1,31 @@
+#!/bin/bash
+export COUNT=$(grep -c "BEGIN PRIVATE KEY" .env)
+if [ $COUNT == 0 ]; then
+
+    if [ ! -f private.key ] || [ ! -f public.key ]; then
+        ./genkeys
+        echo "Keys generated"
+    fi
+
+    # Converts the keys to a single string
+    PRIVATE=$(cat private.key)
+    PUBLIC=$(cat public.key)
+    PRIVATE_KEY=$(echo "$PRIVATE" | tr -d '\n')
+    PUBLIC_KEY=$(echo "$PUBLIC" | tr -d '\n')
+
+    # Add values to JWT variables
+    sed -i "/JWT/d" .env
+    echo "JWT_PRIVATE_KEY=$PRIVATE_KEY" >> .env
+    echo "JWT_PUBLIC_KEY=$PUBLIC_KEY" >> .env
+fi
+
+if [ $1 == d ]; then
+    docker compose -f docker-compose-dev.yml up -d
+else
+    docker compose up -d
+fi
+
+# Remove values from JWT variables
+sed -i "/JWT/d" .env
+echo "JWT_PRIVATE_KEY=" >> .env
+echo "JWT_PUBLIC_KEY=" >> .env
