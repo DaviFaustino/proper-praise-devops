@@ -1,0 +1,5 @@
+#!/bin/bash
+if [ ! -f private.key ] || [ ! -f public.key ]; then
+    openssl genrsa -out private.key 2048
+    openssl rsa -in private.key -pubout -out public.key
+fi
