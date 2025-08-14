@@ -1,0 +1,75 @@
+#!/bin/bash
+set -e
+
+STATE_FILE=".deploy-state.env"
+
+# Initialize state if not exists
+if [ ! -f "$STATE_FILE" ]; then
+    echo "CURRENT_FRONT_COLOR=blue" > "$STATE_FILE"
+    echo "CURRENT_API_COLOR=blue" >> "$STATE_FILE"
+fi
+
+# Load current state
+source "$STATE_FILE"
+
+# Flags
+SWITCH_FRONT=false
+SWITCH_API=false
+
+# Argument parsing
+while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+        --switch-front)
+            SWITCH_FRONT=true
+            ;;
+        --switch-api)
+            SWITCH_API=true
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Usage: ./deploy [--switch-api] [--switch-front]"
+            exit 1
+            ;;
+    esac
+    shift
+done
+
+# Color toggle logic
+flip_color() {
+    [[ "$1" == "blue" ]] && echo "green" || echo "blue"
+}
+
+# Switch front if requested
+if $SWITCH_FRONT; then
+    CURRENT_FRONT_COLOR=$(flip_color "$CURRENT_FRONT_COLOR")
+fi
+
+# Switch API if requested
+if $SWITCH_API; then
+    CURRENT_API_COLOR=$(flip_color "$CURRENT_API_COLOR")
+fi
+
+# Save updated state
+cat <<EOF > "$STATE_FILE"
+CURRENT_FRONT_COLOR=$CURRENT_FRONT_COLOR
+CURRENT_API_COLOR=$CURRENT_API_COLOR
+EOF
+
+# Generate nginx.conf
+sed \
+    -e "s/__FRONT_COLOR__/${CURRENT_FRONT_COLOR}/g" \
+    -e "s/__API_COLOR__/${CURRENT_API_COLOR}/g" \
+    nginx-template.conf > nginx.conf
+
+echo "Generated nginx.conf with:"
+echo "FRONT -> $CURRENT_FRONT_COLOR"
+echo "API   -> $CURRENT_API_COLOR"
+
+# Reload NGINX
+if docker exec proxy-ppp nginx -t; then
+    docker exec proxy-ppp nginx -s reload
+    echo "NGINX reloaded successfully."
+else
+    echo "NGINX config test failed!"
+    exit 1
+fi
