@@ -1,0 +1,74 @@
+#!/bin/bash
+set -e
+
+STATE_FILE=".deploy-state.env"
+
+# Initialize state if not exists
+if [ ! -f "$STATE_FILE" ]; then
+    echo "CURRENT_FRONT_COLOR=blue" > "$STATE_FILE"
+    echo "CURRENT_API_COLOR=blue" >> "$STATE_FILE"
+fi
+
+# Load environment
+source "$STATE_FILE"
+source ".env"
+
+# Args
+UPDATE_API=false
+UPDATE_FRONT=false
+NEW_FRONT_VERSION=""
+NEW_API_VERSION=""
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --api)
+      UPDATE_API=true
+      NEW_API_VERSION="$2"
+      shift 2
+      ;;
+    --front)
+      UPDATE_FRONT=true
+      NEW_FRONT_VERSION="$2"
+      shift 2
+      ;;
+    *)
+      echo "Unknown argument: $1"
+      exit 1
+      ;;
+  esac
+done
+
+flip_color() {
+  if [ "$1" == "blue" ]; then echo "green"; else echo "blue"; fi
+}
+
+# Update API
+if [ "$UPDATE_API" = true ]; then
+  NEXT_API_COLOR=$(flip_color "$CURRENT_API_COLOR")
+
+  echo "Stopping/removing old API container ($NEXT_API_COLOR)"
+  docker stop api-$NEXT_API_COLOR-ppp || true
+  docker rm api-$NEXT_API_COLOR-ppp || true
+
+  echo "Updating .env with API version $NEW_API_VERSION..."
+  sed -i "s/^API_${NEXT_API_COLOR^^}_PROJECT_VERSION=.*/API_${NEXT_API_COLOR^^}_PROJECT_VERSION=$NEW_API_VERSION/" .env
+
+  echo "Starting new API container ($NEXT_API_COLOR) with version $NEW_API_VERSION..."
+  docker compose up -d api-$NEXT_API_COLOR
+fi
+
+# Update FRONT
+if [ "$UPDATE_FRONT" = true ]; then
+  NEXT_FRONT_COLOR=$(flip_color "$CURRENT_FRONT_COLOR")
+
+  echo "Stopping/removing old FRONT container ($NEXT_FRONT_COLOR) with version $FRONT_VERSION..."
+  docker stop front-$NEXT_FRONT_COLOR-ppp || true
+  docker rm front-$NEXT_FRONT_COLOR-ppp || true
+
+  echo "Updating .env with FRONT version $NEW_FRONT_VERSION..."
+  sed -i "s/^FRONT_${NEXT_FRONT_COLOR^^}_PROJECT_VERSION=.*/FRONT_${NEXT_FRONT_COLOR^^}_PROJECT_VERSION=$NEW_FRONT_VERSION/" .env
+
+  echo "Starting new FRONT container ($NEXT_FRONT_COLOR) with version $NEW_FRONT_VERSION..."
+  docker compose up -d front-$NEXT_FRONT_COLOR
+fi
