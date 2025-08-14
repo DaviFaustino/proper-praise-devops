@@ -74,8 +74,10 @@ services:
             - proper-praise
         ports:
             - 80:80
+            - 443:443
         volumes:
             - ./nginx.conf:/etc/nginx/nginx.conf:ro
+            - /etc/letsencrypt:/etc/letsencrypt:ro
         depends_on:
             api-blue:
                 condition: service_healthy
