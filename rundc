@@ -19,10 +19,17 @@ if [ $COUNT == 0 ]; then
     echo "JWT_PUBLIC_KEY=$PUBLIC_KEY" >> .env
 fi
 
+if [ $# -eq 1 ] && [ $1 != d ]; then
+    SERVICE=$1
+fi
+if [ $# -eq 2 ]; then
+    SERVICE=$2
+fi
+
 if [ $1 == d ]; then
-    docker compose -f docker-compose-dev.yml up -d
+    docker compose -f docker-compose-dev.yml up -d $SERVICE
 else
-    docker compose up -d
+    docker compose up -d $SERVICE
 fi
 
 # Remove values from JWT variables
