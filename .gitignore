@@ -1,3 +1,4 @@
 .env
 *.key
 .deploy-state.env
+nginx.conf
