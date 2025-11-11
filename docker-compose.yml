@@ -25,6 +25,23 @@ services:
             retries: 20
             start_period: 10s
 
+    migration:
+        image: flyway/flyway:10.20.1-alpine
+        hostname: migrations
+        container_name: migrations-ppp
+        networks:
+            - proper-praise
+        volumes:
+        - ./db/migrations/schema:/flyway/sql
+        environment:
+            FLYWAY_URL: jdbc:postgresql://${DB_HOST}:5432/proper_praise
+            FLYWAY_USER: ${DB_USERNAME}
+            FLYWAY_PASSWORD: ${DB_PASSWORD}
+        entrypoint: ["/bin/sh", "-c", "flyway migrate"]
+        depends_on:
+            database:
+                condition: service_healthy
+
     api-blue: &api
         image: davifaustino/$API_IMAGE_NAME:$API_BLUE_PROJECT_VERSION
         hostname: api-blue
@@ -41,6 +58,8 @@ services:
         depends_on:
             database:
                 condition: service_healthy
+            migration:
+                condition: service_started
         healthcheck:
             test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/actuator/health"]
             interval: 5s
@@ -53,6 +72,13 @@ services:
         image: davifaustino/$API_IMAGE_NAME:$API_GREEN_PROJECT_VERSION
         hostname: api-green
         container_name: api-green-ppp
+        depends_on:
+            database:
+                condition: service_healthy
+            migration:
+                condition: service_started
+            api-blue:
+                condition: service_healthy
 
     front-blue: &front
         image: davifaustino/$FRONT_IMAGE_NAME:$FRONT_BLUE_PROJECT_VERSION
