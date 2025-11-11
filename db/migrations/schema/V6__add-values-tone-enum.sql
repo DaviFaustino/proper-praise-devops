@@ -1,0 +1,14 @@
+-- flyway:executeInTransaction=false
+
+ALTER TYPE tone ADD VALUE 'Cm';
+ALTER TYPE tone ADD VALUE 'Dbm';
+ALTER TYPE tone ADD VALUE 'Dm';
+ALTER TYPE tone ADD VALUE 'Ebm';
+ALTER TYPE tone ADD VALUE 'Em';
+ALTER TYPE tone ADD VALUE 'Fm';
+ALTER TYPE tone ADD VALUE 'Gbm';
+ALTER TYPE tone ADD VALUE 'Gm';
+ALTER TYPE tone ADD VALUE 'Abm';
+ALTER TYPE tone ADD VALUE 'Am';
+ALTER TYPE tone ADD VALUE 'Bbm';
+ALTER TYPE tone ADD VALUE 'Bm';
